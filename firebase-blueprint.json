@@ -1,0 +1,226 @@
+{
+  "entities": {
+    "Actor": {
+      "title": "Actor",
+      "description": "Full actor and production crew member profile managed exclusively by the CEO/Administrator.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 64 },
+        "fullName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "nickname": { "type": "string", "maxLength": 80 },
+        "dateOfBirth": { "type": "string", "maxLength": 20 },
+        "registrationNumber": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "dateOfRegister": { "type": "string", "maxLength": 20 },
+        "phoneNumber": { "type": "string", "minLength": 5, "maxLength": 30 },
+        "position": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "townCity": { "type": "string", "maxLength": 100 },
+        "homeAddress": { "type": "string", "maxLength": 240 },
+        "stateOfOrigin": { "type": "string", "maxLength": 80 },
+        "lga": { "type": "string", "maxLength": 80 },
+        "photoUrl": { "type": "string", "maxLength": 400000 },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "portalHash": { "type": "string", "pattern": "^[a-f0-9]{64}$", "maxLength": 64 },
+        "accessPassword": { "type": "string", "minLength": 4, "maxLength": 64 },
+        "welcomeMessage": { "type": "string", "maxLength": 300 },
+        "createdByUid": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id", "fullName", "nickname", "dateOfBirth", "registrationNumber",
+        "dateOfRegister", "phoneNumber", "position", "townCity", "homeAddress",
+        "stateOfOrigin", "lga", "photoUrl", "status", "portalHash",
+        "accessPassword", "welcomeMessage", "createdByUid", "createdAt", "updatedAt"
+      ]
+    },
+    "ActorPortal": {
+      "title": "ActorPortal",
+      "description": "Password-hashed read-only portal vault allowing an individual actor to view their own details and messages.",
+      "type": "object",
+      "properties": {
+        "actorId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 64 },
+        "portalHash": { "type": "string", "pattern": "^[a-f0-9]{64}$", "maxLength": 64 },
+        "fullName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "nickname": { "type": "string", "maxLength": 80 },
+        "dateOfBirth": { "type": "string", "maxLength": 20 },
+        "registrationNumber": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "dateOfRegister": { "type": "string", "maxLength": 20 },
+        "phoneNumber": { "type": "string", "minLength": 5, "maxLength": 30 },
+        "position": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "townCity": { "type": "string", "maxLength": 100 },
+        "homeAddress": { "type": "string", "maxLength": 240 },
+        "stateOfOrigin": { "type": "string", "maxLength": 80 },
+        "lga": { "type": "string", "maxLength": 80 },
+        "photoUrl": { "type": "string", "maxLength": 400000 },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "welcomeMessage": { "type": "string", "maxLength": 300 },
+        "messages": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "actorId", "portalHash", "fullName", "nickname", "dateOfBirth",
+        "registrationNumber", "dateOfRegister", "phoneNumber", "position",
+        "townCity", "homeAddress", "stateOfOrigin", "lga", "photoUrl",
+        "status", "welcomeMessage", "messages", "createdAt", "updatedAt"
+      ]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Direct studio message sent by the CEO to a registered actor.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 64 },
+        "actorId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 64 },
+        "actorName": { "type": "string", "maxLength": 120 },
+        "registrationNumber": { "type": "string", "maxLength": 40 },
+        "subject": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "isWelcomeMessage": { "type": "boolean" },
+        "senderEmail": { "type": "string", "maxLength": 120 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id", "actorId", "actorName", "registrationNumber",
+        "subject", "body", "isWelcomeMessage", "senderEmail", "createdAt"
+      ]
+    },
+    "Video": {
+      "title": "Video",
+      "description": "Production video reel or feature posted by the CEO with optional pay-per-view pricing.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 64 },
+        "title": { "type": "string", "minLength": 2, "maxLength": 140 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "videoUrl": { "type": "string", "minLength": 5, "maxLength": 1000 },
+        "thumbnailUrl": { "type": "string", "maxLength": 400000 },
+        "category": { "type": "string", "maxLength": 60 },
+        "durationLabel": { "type": "string", "maxLength": 20 },
+        "isPublished": { "type": "boolean" },
+        "isPaid": { "type": "boolean" },
+        "priceAmount": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 10 },
+        "paymentLink": { "type": "string", "maxLength": 500 },
+        "createdByUid": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id", "title", "description", "videoUrl", "thumbnailUrl",
+        "category", "durationLabel", "isPublished", "isPaid", "priceAmount",
+        "currency", "paymentLink", "createdByUid", "createdAt", "updatedAt"
+      ]
+    },
+    "StudioSettings": {
+      "title": "StudioSettings",
+      "description": "Global Unity Film World Production studio settings, payout account, and production rules.",
+      "type": "object",
+      "properties": {
+        "studioName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "welcomeHeadline": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "motto": { "type": "string", "maxLength": 200 },
+        "regPrefix": { "type": "string", "maxLength": 20 },
+        "autoWelcomeMessage": { "type": "string", "maxLength": 500 },
+        "productionRules": { "type": "string", "maxLength": 3000 },
+        "contactEmail": { "type": "string", "maxLength": 120 },
+        "contactPhone": { "type": "string", "maxLength": 40 },
+        "payoutBankName": { "type": "string", "maxLength": 120 },
+        "payoutAccountNumber": { "type": "string", "maxLength": 60 },
+        "payoutAccountName": { "type": "string", "maxLength": 120 },
+        "paymentLink": { "type": "string", "maxLength": 500 },
+        "defaultCurrency": { "type": "string", "maxLength": 10 },
+        "defaultVideoPrice": { "type": "number" },
+        "perViewRate": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "studioName", "welcomeHeadline", "motto", "regPrefix",
+        "autoWelcomeMessage", "productionRules", "contactEmail", "contactPhone",
+        "payoutBankName", "payoutAccountNumber", "payoutAccountName", "paymentLink",
+        "defaultCurrency", "defaultVideoPrice", "perViewRate", "updatedAt"
+      ]
+    },
+    "CeoSecurity": {
+      "title": "CeoSecurity",
+      "description": "Salted SHA-256 CEO PIN/Password lock configuration stored exclusively for the CEO.",
+      "type": "object",
+      "properties": {
+        "pinSalt": { "type": "string", "maxLength": 64 },
+        "pinHash": { "type": "string", "pattern": "^[a-f0-9]{64}$", "maxLength": 64 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["pinSalt", "pinHash", "updatedAt"]
+    },
+    "VideoPayment": {
+      "title": "VideoPayment",
+      "description": "Viewer payment record for unlocking and watching a studio video, credited to the CEO.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 64 },
+        "videoId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 64 },
+        "videoTitle": { "type": "string", "maxLength": 140 },
+        "viewerName": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "viewerContact": { "type": "string", "minLength": 3, "maxLength": 120 },
+        "paymentMethod": { "type": "string", "maxLength": 60 },
+        "paymentReference": { "type": "string", "minLength": 3, "maxLength": 100 },
+        "amount": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 10 },
+        "status": { "type": "string", "enum": ["pending_verification", "confirmed", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id", "videoId", "videoTitle", "viewerName", "viewerContact",
+        "paymentMethod", "paymentReference", "amount", "currency", "status", "createdAt"
+      ]
+    },
+    "VideoView": {
+      "title": "VideoView",
+      "description": "Verified watch view record logged when someone watches a video on the app.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 64 },
+        "videoId": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$", "maxLength": 64 },
+        "videoTitle": { "type": "string", "maxLength": 140 },
+        "earnedAmount": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 10 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "videoId", "videoTitle", "earnedAmount", "currency", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/actors/{actorId}": {
+      "schema": { "$ref": "#/entities/Actor" },
+      "description": "Master actor & crew records readable and writable only by the CEO/Admin."
+    },
+    "/actorPortals/{portalHash}": {
+      "schema": { "$ref": "#/entities/ActorPortal" },
+      "description": "Hashed read-only actor portal documents keyed by SHA-256(REG_NUMBER:PASSWORD)."
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "CEO-to-actor direct message log."
+    },
+    "/videos/{videoId}": {
+      "schema": { "$ref": "#/entities/Video" },
+      "description": "Production videos and monetized reels posted by the CEO."
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/StudioSettings" },
+      "description": "Studio configuration, CEO payout account, and production rules."
+    },
+    "/ceoSecurity/{docId}": {
+      "schema": { "$ref": "#/entities/CeoSecurity" },
+      "description": "CEO PIN/Password salted hash configuration."
+    },
+    "/videoPayments/{paymentId}": {
+      "schema": { "$ref": "#/entities/VideoPayment" },
+      "description": "Viewer payments for watching paid studio videos."
+    },
+    "/videoViews/{viewId}": {
+      "schema": { "$ref": "#/entities/VideoView" },
+      "description": "Watch view tracking for CEO per-view revenue."
+    }
+  }
+}

@@ -1,0 +1,405 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core primitives
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidPortalHash(hash) {
+      return hash is string && hash.size() == 64 && hash.matches('^[a-f0-9]{64}$');
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && (
+          request.auth.token.email == 'smartgbanador882@gmail.com'
+          || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        );
+    }
+
+    // Validation Blueprint: Actor
+    function isValidActor(data, actorId) {
+      return data.keys().hasAll([
+          'id', 'fullName', 'nickname', 'dateOfBirth', 'registrationNumber',
+          'dateOfRegister', 'phoneNumber', 'position', 'townCity', 'homeAddress',
+          'stateOfOrigin', 'lga', 'photoUrl', 'status', 'portalHash',
+          'accessPassword', 'welcomeMessage', 'createdByUid', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'fullName', 'nickname', 'dateOfBirth', 'registrationNumber',
+          'dateOfRegister', 'phoneNumber', 'position', 'townCity', 'homeAddress',
+          'stateOfOrigin', 'lga', 'photoUrl', 'status', 'portalHash',
+          'accessPassword', 'welcomeMessage', 'createdByUid', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == actorId && isValidId(data.id)
+        && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 120
+        && data.nickname is string && data.nickname.size() <= 80
+        && data.dateOfBirth is string && data.dateOfBirth.size() <= 20
+        && data.registrationNumber is string && data.registrationNumber.size() >= 2 && data.registrationNumber.size() <= 40
+        && data.dateOfRegister is string && data.dateOfRegister.size() <= 20
+        && data.phoneNumber is string && data.phoneNumber.size() >= 5 && data.phoneNumber.size() <= 30
+        && data.position is string && data.position.size() >= 2 && data.position.size() <= 100
+        && data.townCity is string && data.townCity.size() <= 100
+        && data.homeAddress is string && data.homeAddress.size() <= 240
+        && data.stateOfOrigin is string && data.stateOfOrigin.size() <= 80
+        && data.lga is string && data.lga.size() <= 80
+        && data.photoUrl is string && data.photoUrl.size() <= 400000
+        && data.status is string && (data.status == 'active' || data.status == 'inactive')
+        && isValidPortalHash(data.portalHash)
+        && data.accessPassword is string && data.accessPassword.size() >= 4 && data.accessPassword.size() <= 64
+        && data.welcomeMessage is string && data.welcomeMessage.size() <= 300
+        && data.createdByUid is string && data.createdByUid.size() <= 128
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: ActorPortal
+    function isValidActorPortal(data, hashId) {
+      return data.keys().hasAll([
+          'actorId', 'portalHash', 'fullName', 'nickname', 'dateOfBirth',
+          'registrationNumber', 'dateOfRegister', 'phoneNumber', 'position',
+          'townCity', 'homeAddress', 'stateOfOrigin', 'lga', 'photoUrl',
+          'status', 'welcomeMessage', 'messages', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'actorId', 'portalHash', 'fullName', 'nickname', 'dateOfBirth',
+          'registrationNumber', 'dateOfRegister', 'phoneNumber', 'position',
+          'townCity', 'homeAddress', 'stateOfOrigin', 'lga', 'photoUrl',
+          'status', 'welcomeMessage', 'messages', 'createdAt', 'updatedAt'
+        ])
+        && data.actorId is string && isValidId(data.actorId)
+        && data.portalHash is string && data.portalHash == hashId && isValidPortalHash(data.portalHash)
+        && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 120
+        && data.nickname is string && data.nickname.size() <= 80
+        && data.dateOfBirth is string && data.dateOfBirth.size() <= 20
+        && data.registrationNumber is string && data.registrationNumber.size() >= 2 && data.registrationNumber.size() <= 40
+        && data.dateOfRegister is string && data.dateOfRegister.size() <= 20
+        && data.phoneNumber is string && data.phoneNumber.size() >= 5 && data.phoneNumber.size() <= 30
+        && data.position is string && data.position.size() >= 2 && data.position.size() <= 100
+        && data.townCity is string && data.townCity.size() <= 100
+        && data.homeAddress is string && data.homeAddress.size() <= 240
+        && data.stateOfOrigin is string && data.stateOfOrigin.size() <= 80
+        && data.lga is string && data.lga.size() <= 80
+        && data.photoUrl is string && data.photoUrl.size() <= 400000
+        && data.status is string && (data.status == 'active' || data.status == 'inactive')
+        && data.welcomeMessage is string && data.welcomeMessage.size() <= 300
+        && data.messages is list && data.messages.size() <= 50
+        && (data.messages.size() == 0 || data.messages[0] is map)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: Message
+    function isValidMessage(data, messageId) {
+      return data.keys().hasAll([
+          'id', 'actorId', 'actorName', 'registrationNumber',
+          'subject', 'body', 'isWelcomeMessage', 'senderEmail', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'actorId', 'actorName', 'registrationNumber',
+          'subject', 'body', 'isWelcomeMessage', 'senderEmail', 'createdAt'
+        ])
+        && data.id is string && data.id == messageId && isValidId(data.id)
+        && data.actorId is string && isValidId(data.actorId)
+        && data.actorName is string && data.actorName.size() <= 120
+        && data.registrationNumber is string && data.registrationNumber.size() <= 40
+        && data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 140
+        && data.body is string && data.body.size() >= 1 && data.body.size() <= 2000
+        && data.isWelcomeMessage is bool
+        && data.senderEmail is string && data.senderEmail.size() <= 120
+        && data.createdAt is timestamp;
+    }
+
+    // Validation Blueprint: Video (with monetization fields)
+    function isValidVideo(data, videoId) {
+      return data.keys().hasAll([
+          'id', 'title', 'description', 'videoUrl', 'thumbnailUrl',
+          'category', 'durationLabel', 'isPublished', 'isPaid', 'priceAmount',
+          'currency', 'paymentLink', 'createdByUid', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'title', 'description', 'videoUrl', 'thumbnailUrl',
+          'category', 'durationLabel', 'isPublished', 'isPaid', 'priceAmount',
+          'currency', 'paymentLink', 'createdByUid', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string && data.id == videoId && isValidId(data.id)
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 140
+        && data.description is string && data.description.size() <= 1000
+        && data.videoUrl is string && data.videoUrl.size() >= 5 && data.videoUrl.size() <= 1000
+        && data.thumbnailUrl is string && data.thumbnailUrl.size() <= 400000
+        && data.category is string && data.category.size() <= 60
+        && data.durationLabel is string && data.durationLabel.size() <= 20
+        && data.isPublished is bool
+        && data.isPaid is bool
+        && data.priceAmount is number && data.priceAmount >= 0 && data.priceAmount <= 10000000
+        && data.currency is string && data.currency.size() <= 10
+        && data.paymentLink is string && data.paymentLink.size() <= 500
+        && data.createdByUid is string && data.createdByUid.size() <= 128
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: StudioSettings (with CEO payout fields)
+    function isValidStudioSettings(data) {
+      return data.keys().hasAll([
+          'studioName', 'welcomeHeadline', 'motto', 'regPrefix',
+          'autoWelcomeMessage', 'productionRules', 'contactEmail', 'contactPhone',
+          'payoutBankName', 'payoutAccountNumber', 'payoutAccountName', 'paymentLink',
+          'defaultCurrency', 'defaultVideoPrice', 'perViewRate', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'studioName', 'welcomeHeadline', 'motto', 'regPrefix',
+          'autoWelcomeMessage', 'productionRules', 'contactEmail', 'contactPhone',
+          'payoutBankName', 'payoutAccountNumber', 'payoutAccountName', 'paymentLink',
+          'defaultCurrency', 'defaultVideoPrice', 'perViewRate', 'updatedAt'
+        ])
+        && data.studioName is string && data.studioName.size() >= 2 && data.studioName.size() <= 120
+        && data.welcomeHeadline is string && data.welcomeHeadline.size() >= 2 && data.welcomeHeadline.size() <= 200
+        && data.motto is string && data.motto.size() <= 200
+        && data.regPrefix is string && data.regPrefix.size() <= 20
+        && data.autoWelcomeMessage is string && data.autoWelcomeMessage.size() <= 500
+        && data.productionRules is string && data.productionRules.size() <= 3000
+        && data.contactEmail is string && data.contactEmail.size() <= 120
+        && data.contactPhone is string && data.contactPhone.size() <= 40
+        && data.payoutBankName is string && data.payoutBankName.size() <= 120
+        && data.payoutAccountNumber is string && data.payoutAccountNumber.size() <= 60
+        && data.payoutAccountName is string && data.payoutAccountName.size() <= 120
+        && data.paymentLink is string && data.paymentLink.size() <= 500
+        && data.defaultCurrency is string && data.defaultCurrency.size() <= 10
+        && data.defaultVideoPrice is number && data.defaultVideoPrice >= 0 && data.defaultVideoPrice <= 10000000
+        && data.perViewRate is number && data.perViewRate >= 0 && data.perViewRate <= 100000
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: CeoSecurity
+    function isValidCeoSecurity(data) {
+      return data.keys().hasAll(['pinSalt', 'pinHash', 'updatedAt'])
+        && data.keys().hasOnly(['pinSalt', 'pinHash', 'updatedAt'])
+        && data.pinSalt is string && data.pinSalt.size() >= 8 && data.pinSalt.size() <= 64
+        && isValidPortalHash(data.pinHash)
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: VideoPayment
+    function isValidVideoPayment(data, paymentId) {
+      return data.keys().hasAll([
+          'id', 'videoId', 'videoTitle', 'viewerName', 'viewerContact',
+          'paymentMethod', 'paymentReference', 'amount', 'currency', 'status', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'videoId', 'videoTitle', 'viewerName', 'viewerContact',
+          'paymentMethod', 'paymentReference', 'amount', 'currency', 'status', 'createdAt'
+        ])
+        && data.id is string && data.id == paymentId && isValidId(data.id)
+        && data.videoId is string && isValidId(data.videoId)
+        && data.videoTitle is string && data.videoTitle.size() <= 140
+        && data.viewerName is string && data.viewerName.size() >= 2 && data.viewerName.size() <= 100
+        && data.viewerContact is string && data.viewerContact.size() >= 3 && data.viewerContact.size() <= 120
+        && data.paymentMethod is string && data.paymentMethod.size() >= 2 && data.paymentMethod.size() <= 60
+        && data.paymentReference is string && data.paymentReference.size() >= 3 && data.paymentReference.size() <= 100
+        && data.amount is number && data.amount > 0 && data.amount <= 10000000
+        && data.currency is string && data.currency.size() <= 10
+        && data.status is string && (data.status == 'pending_verification' || data.status == 'confirmed' || data.status == 'rejected')
+        && data.createdAt is timestamp;
+    }
+
+    // Validation Blueprint: VideoView
+    function isValidVideoView(data, viewId) {
+      return data.keys().hasAll(['id', 'videoId', 'videoTitle', 'earnedAmount', 'currency', 'createdAt'])
+        && data.keys().hasOnly(['id', 'videoId', 'videoTitle', 'earnedAmount', 'currency', 'createdAt'])
+        && data.id is string && data.id == viewId && isValidId(data.id)
+        && data.videoId is string && isValidId(data.videoId)
+        && data.videoTitle is string && data.videoTitle.size() <= 140
+        && data.earnedAmount is number && data.earnedAmount >= 0 && data.earnedAmount <= 100000
+        && data.currency is string && data.currency.size() <= 10
+        && data.createdAt is timestamp;
+    }
+
+    // 1. Actors master collection (CEO-only)
+    match /actors/{actorId} {
+      allow get: if isValidId(actorId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(actorId)
+        && isAdmin()
+        && isValidActor(incoming(), actorId)
+        && incoming().createdByUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(actorId)
+        && isAdmin()
+        && isValidActor(incoming(), actorId)
+        && incoming().id == existing().id
+        && incoming().createdByUid == existing().createdByUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'fullName', 'nickname', 'dateOfBirth', 'registrationNumber',
+          'dateOfRegister', 'phoneNumber', 'position', 'townCity', 'homeAddress',
+          'stateOfOrigin', 'lga', 'photoUrl', 'status', 'portalHash',
+          'accessPassword', 'welcomeMessage', 'updatedAt'
+        ]);
+      allow delete: if isValidId(actorId) && isAdmin();
+    }
+
+    // 2. ActorPortals collection
+    match /actorPortals/{portalHash} {
+      allow get: if isValidPortalHash(portalHash)
+        && (isAdmin() || existing().portalHash == portalHash);
+      allow list: if isAdmin();
+      allow create: if isValidPortalHash(portalHash)
+        && isAdmin()
+        && isValidActorPortal(incoming(), portalHash)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidPortalHash(portalHash)
+        && isAdmin()
+        && isValidActorPortal(incoming(), portalHash)
+        && incoming().actorId == existing().actorId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'portalHash', 'fullName', 'nickname', 'dateOfBirth',
+          'registrationNumber', 'dateOfRegister', 'phoneNumber', 'position',
+          'townCity', 'homeAddress', 'stateOfOrigin', 'lga', 'photoUrl',
+          'status', 'welcomeMessage', 'messages', 'updatedAt'
+        ]);
+      allow delete: if isValidPortalHash(portalHash) && isAdmin();
+    }
+
+    // 3. Messages collection (CEO-only)
+    match /messages/{messageId} {
+      allow get: if isValidId(messageId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(messageId)
+        && isAdmin()
+        && isValidMessage(incoming(), messageId)
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isValidId(messageId) && isAdmin();
+    }
+
+    // 4. Videos collection (Public read for published videos; CEO-only write)
+    match /videos/{videoId} {
+      allow get: if isValidId(videoId) && (isAdmin() || existing().isPublished == true);
+      allow list: if isAdmin() || existing().isPublished == true;
+      allow create: if isValidId(videoId)
+        && isAdmin()
+        && isValidVideo(incoming(), videoId)
+        && incoming().createdByUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(videoId)
+        && isAdmin()
+        && isValidVideo(incoming(), videoId)
+        && incoming().id == existing().id
+        && incoming().createdByUid == existing().createdByUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'description', 'videoUrl', 'thumbnailUrl',
+          'category', 'durationLabel', 'isPublished', 'isPaid',
+          'priceAmount', 'currency', 'paymentLink', 'updatedAt'
+        ]);
+      allow delete: if isValidId(videoId) && isAdmin();
+    }
+
+    // 5. StudioSettings collection
+    match /settings/{settingId} {
+      allow get: if isValidId(settingId) && (settingId == 'studio' || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(settingId)
+        && isAdmin()
+        && isValidStudioSettings(incoming())
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(settingId)
+        && isAdmin()
+        && isValidStudioSettings(incoming())
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'studioName', 'welcomeHeadline', 'motto', 'regPrefix',
+          'autoWelcomeMessage', 'productionRules', 'contactEmail', 'contactPhone',
+          'payoutBankName', 'payoutAccountNumber', 'payoutAccountName', 'paymentLink',
+          'defaultCurrency', 'defaultVideoPrice', 'perViewRate', 'updatedAt'
+        ]);
+      allow delete: if isValidId(settingId) && isAdmin();
+    }
+
+    // 6. CeoSecurity collection (CEO PIN/Password salted hash — CEO-only)
+    match /ceoSecurity/{docId} {
+      allow get: if isValidId(docId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(docId)
+        && docId == 'pinConfig'
+        && isAdmin()
+        && isValidCeoSecurity(incoming())
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(docId)
+        && docId == 'pinConfig'
+        && isAdmin()
+        && isValidCeoSecurity(incoming())
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['pinSalt', 'pinHash', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // 7. VideoPayments collection (Viewers create validated payment receipts; CEO manages & confirms)
+    match /videoPayments/{paymentId} {
+      allow get: if isValidId(paymentId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(paymentId)
+        && isValidVideoPayment(incoming(), paymentId)
+        && incoming().status == 'pending_verification'
+        && incoming().createdAt == request.time
+        && exists(/databases/$(database)/documents/videos/$(incoming().videoId))
+        && get(/databases/$(database)/documents/videos/$(incoming().videoId)).data.isPublished == true
+        && get(/databases/$(database)/documents/videos/$(incoming().videoId)).data.isPaid == true
+        && incoming().amount == get(/databases/$(database)/documents/videos/$(incoming().videoId)).data.priceAmount;
+      allow update: if isValidId(paymentId)
+        && isAdmin()
+        && isValidVideoPayment(incoming(), paymentId)
+        && incoming().id == existing().id
+        && incoming().videoId == existing().videoId
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+      allow delete: if isValidId(paymentId) && isAdmin();
+    }
+
+    // 8. VideoViews collection (Viewers log watch view for existing published video; CEO reads analytics)
+    match /videoViews/{viewId} {
+      allow get: if isValidId(viewId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(viewId)
+        && isValidVideoView(incoming(), viewId)
+        && incoming().createdAt == request.time
+        && exists(/databases/$(database)/documents/videos/$(incoming().videoId))
+        && get(/databases/$(database)/documents/videos/$(incoming().videoId)).data.isPublished == true;
+      allow update, delete: if isAdmin();
+    }
+
+    // 9. Admins lookup collection
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && isAdmin();
+      allow list, write: if false;
+    }
+  }
+}

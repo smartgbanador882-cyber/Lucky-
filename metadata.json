@@ -1,0 +1,6 @@
+{
+  "name": "Unity Film World Production",
+  "description": "Official talent registry, actor portal, production video showcase, and CEO management studio for Unity Film World Production.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
